@@ -14,12 +14,10 @@ import java.util.Date;
 @Component
 public class JwtUtil {
 
-    private final JwtConfigProperties jwtConfig;
     private final SecretKey secretKey;
 
     @Autowired
     public JwtUtil(JwtConfigProperties jwtConfig) {
-        this.jwtConfig = jwtConfig;
         // Create a proper secret key from the configuration
         this.secretKey = Keys.hmacShaKeyFor(jwtConfig.getSecret().getBytes(StandardCharsets.UTF_8));
     }

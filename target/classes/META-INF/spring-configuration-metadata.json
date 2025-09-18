@@ -1,0 +1,22 @@
+{
+  "groups": [
+    {
+      "name": "jwt",
+      "type": "com.bmsedge.gateway.config.JwtConfigProperties",
+      "sourceType": "com.bmsedge.gateway.config.JwtConfigProperties"
+    }
+  ],
+  "properties": [
+    {
+      "name": "jwt.expiration",
+      "type": "java.lang.Long",
+      "sourceType": "com.bmsedge.gateway.config.JwtConfigProperties"
+    },
+    {
+      "name": "jwt.secret",
+      "type": "java.lang.String",
+      "sourceType": "com.bmsedge.gateway.config.JwtConfigProperties"
+    }
+  ],
+  "hints": []
+}

@@ -1,0 +1,92 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: api-gateway
+  cloud:
+    gateway:
+      routes:
+        - id: inventory-service
+          uri: lb://INVENTORY-SERVICE
+          predicates:
+            - Path=/api/inventory/**
+          filters:
+            - RewritePath=/api/inventory/(?<segment>.*), /${segment}
+
+        - id: stock-service
+          uri: lb://STOCK-SERVICE
+          predicates:
+            - Path=/api/stock/**
+          filters:
+            - RewritePath=/api/stock/(?<segment>.*), /${segment}
+
+        - id: consumption-service
+          uri: lb://CONSUMPTION-SERVICE
+          predicates:
+            - Path=/api/consumption/**
+          filters:
+            - RewritePath=/api/consumption/(?<segment>.*), /${segment}
+
+        - id: analytics-service
+          uri: lb://ANALYTICS-SERVICE
+          predicates:
+            - Path=/api/analytics/**
+          filters:
+            - RewritePath=/api/analytics/(?<segment>.*), /${segment}
+
+        - id: auth-service
+          uri: lb://AUTH-SERVICE
+          predicates:
+            - Path=/api/auth/**
+          filters:
+            - RewritePath=/api/auth/(?<segment>.*), /${segment}
+
+        - id: user-service
+          uri: lb://USER-SERVICE
+          predicates:
+            - Path=/api/users/**
+          filters:
+            - RewritePath=/api/users/(?<segment>.*), /${segment}
+
+      globalcors:
+        cors-configurations:
+          '[/**]':
+            allowedOrigins:
+              - "http://localhost:3000"
+              - "http://localhost:4200"
+            allowedMethods:
+              - GET
+              - POST
+              - PUT
+              - DELETE
+              - OPTIONS
+            allowedHeaders:
+              - "*"
+            allowCredentials: true
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    register-with-eureka: true
+    fetch-registry: true
+  instance:
+    hostname: localhost
+    prefer-ip-address: true
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,gateway
+
+logging:
+  level:
+    root: INFO
+    org.springframework.cloud.gateway: DEBUG
+
+# JWT Configuration - THIS IS REQUIRED!
+jwt:
+  secret: mySecretKeyForJWTShouldBeAtLeast256BitsLongForHS256Algorithm1234567890
+  expiration: 86400000
