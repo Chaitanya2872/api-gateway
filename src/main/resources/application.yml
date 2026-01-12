@@ -70,8 +70,7 @@ spring:
           predicates:
             - Path=/api/inventory/**
           filters:
-            - filters:
-                - StripPrefix=1
+            - StripPrefix=1
 
         # --------------------------
         # IOT SENSORS SERVICE
