@@ -1,0 +1,58 @@
+server:
+  port: 8080
+
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: user-service
+          uri: lb://USER-SERVICE
+          predicates:
+            - Path=/api/users/**
+          filters:
+            - RewritePath=/api/users/(?<segment>.*), /${segment}
+
+        - id: inventory-service
+          uri: lb://INVENTORY-SERVICE
+          predicates:
+            - Path=/api/inventory/**
+          filters:
+            - RewritePath=/api/inventory/(?<segment>.*), /${segment}
+
+        - id: iot-sensors-service
+          uri: lb://IOT-SENSORS-SERVICE
+          predicates:
+            - Path=/api/sensors/**
+          filters:
+            - RewritePath=/api/sensors/(?<segment>.*), /${segment}
+
+        - id: assets-management-service
+          uri: lb://ASSETS-MANAGEMENT-SERVICE
+          predicates:
+            - Path=/api/assets/**
+          filters:
+            - RewritePath=/api/assets/(?<segment>.*), /${segment}
+
+        - id: meal-forecasting-service
+          uri: lb://MEAL-FORECASTING-SERVICE
+          predicates:
+            - Path=/api/meal/**
+          filters:
+            - RewritePath=/api/meal/(?<segment>.*), /${segment}
+
+        - id: energy-management-service
+          uri: lb://ENERGY-MANAGEMENT-SERVICE
+          predicates:
+            - Path=/api/energy/**
+          filters:
+            - RewritePath=/api/energy/(?<segment>.*), /${segment}
+
+eureka:
+  client:
+    service-url:
+      defaultZone: http://localhost:8761/eureka/
+    register-with-eureka: true
+    fetch-registry: true
+
+jwt:
+  secret: 0123456789abcdef0123456789abcdef

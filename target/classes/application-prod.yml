@@ -1,0 +1,46 @@
+server:
+  port: 80
+
+spring:
+  cloud:
+    gateway:
+      routes:
+        - id: user-service
+          uri: lb://USER-SERVICE
+          predicates:
+            - Path=/api/users/**
+
+        - id: inventory-service
+          uri: lb://INVENTORY-SERVICE
+          predicates:
+            - Path=/api/inventory/**
+
+        - id: iot-sensors-service
+          uri: lb://IOT-SENSORS-SERVICE
+          predicates:
+            - Path=/api/sensors/**
+
+        - id: assets-management-service
+          uri: lb://ASSETS-MANAGEMENT-SERVICE
+          predicates:
+            - Path=/api/assets/**
+
+        - id: meal-forecasting-service
+          uri: lb://MEAL-FORECASTING-SERVICE
+          predicates:
+            - Path=/api/meal/**
+
+        - id: energy-management-service
+          uri: lb://ENERGY-MANAGEMENT-SERVICE
+          predicates:
+            - Path=/api/energy/**
+
+eureka:
+  client:
+    service-url:
+      defaultZone: ${EUREKA_URL:http://eureka:8761/eureka/}
+    register-with-eureka: true
+    fetch-registry: true
+
+jwt:
+  secret: ${JWT_SECRET}

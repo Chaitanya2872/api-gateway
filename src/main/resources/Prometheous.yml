@@ -1,0 +1,111 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+  external_labels:
+    cluster: 'bmsedge-platform'
+    environment: 'production'
+
+# Alertmanager configuration (optional)
+# alerting:
+#   alertmanagers:
+#     - static_configs:
+#         - targets:
+#           - alertmanager:9093
+
+# Load rules once and periodically evaluate them
+# rule_files:
+#   - "alerts/*.yml"
+
+scrape_configs:
+  # API Gateway metrics
+  - job_name: 'api-gateway'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['api-gateway:8080']
+        labels:
+          service: 'api-gateway'
+          instance: 'gateway-1'
+
+  # User Service metrics
+  - job_name: 'user-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['user-service:8084']
+        labels:
+          service: 'user-service'
+
+  # Inventory Service metrics
+  - job_name: 'inventory-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['inventory-service:8082']
+        labels:
+          service: 'inventory-service'
+
+  # IoT Sensors Service metrics
+  - job_name: 'iot-sensors-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['iot-sensors-service:8085']
+        labels:
+          service: 'iot-sensors-service'
+
+  # Assets Management Service metrics
+  - job_name: 'assets-management-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['assets-management-service:8088']
+        labels:
+          service: 'assets-management-service'
+
+  # Meal Forecasting Service metrics
+  - job_name: 'meal-forecasting-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['meal-forecasting-service:8090']
+        labels:
+          service: 'meal-forecasting-service'
+
+  # Energy Management Service metrics
+  - job_name: 'energy-management-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['energy-management-service:8086']
+        labels:
+          service: 'energy-management-service'
+
+  # Analytics Service metrics
+  - job_name: 'analytics-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['analytics-service:8087']
+        labels:
+          service: 'analytics-service'
+
+  # Visitor Management Service metrics
+  - job_name: 'visitor-management-service'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['visitor-management-service:8089']
+        labels:
+          service: 'visitor-management-service'
+
+  # Eureka Server metrics
+  - job_name: 'eureka-server'
+    metrics_path: '/actuator/prometheus'
+    static_configs:
+      - targets: ['eureka-server:8761']
+        labels:
+          service: 'eureka-server'
+
+  # Redis exporter (if using redis_exporter)
+  - job_name: 'redis'
+    static_configs:
+      - targets: ['redis-exporter:9121']
+        labels:
+          service: 'redis'
+
+  # Node exporter for system metrics (optional)
+  # - job_name: 'node'
+  #   static_configs:
+  #     - targets: ['node-exporter:9100']

@@ -7,6 +7,7 @@ import io.jsonwebtoken.security.Keys;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.PostConstruct;
 import javax.crypto.SecretKey;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
@@ -14,43 +15,59 @@ import java.util.Date;
 @Component
 public class JwtUtil {
 
-    private final SecretKey secretKey;
+    private SecretKey secretKey;
+    private final JwtConfigProperties jwtConfig;
 
     @Autowired
     public JwtUtil(JwtConfigProperties jwtConfig) {
-        // Create a proper secret key from the configuration
-        this.secretKey = Keys.hmacShaKeyFor(jwtConfig.getSecret().getBytes(StandardCharsets.UTF_8));
+        this.jwtConfig = jwtConfig;
     }
 
-    public Claims extractAllClaims(String token) {
+    @PostConstruct
+    private void init() {
+        String secret = jwtConfig.getSecret();
+
+        if (secret == null || secret.length() < 32) {
+            throw new IllegalArgumentException(
+                    "JWT secret must be at least 32 characters (256 bits). " +
+                            "Current size: " + (secret == null ? 0 : secret.length())
+            );
+        }
+
+        this.secretKey = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
+    }
+
+    private Claims getClaims(String token) {
         return Jwts.parser()
-                .verifyWith(secretKey)
-                .build()
-                .parseSignedClaims(token)
-                .getPayload();
+                .setSigningKey(secretKey) // or secret string
+                .parseClaimsJws(token)
+                .getBody();
     }
 
     public String extractUsername(String token) {
-        return extractAllClaims(token).getSubject();
+        return getClaims(token).getSubject();
     }
 
     public Date extractExpiration(String token) {
-        return extractAllClaims(token).getExpiration();
+        return getClaims(token).getExpiration();
     }
 
-    public Boolean isTokenExpired(String token) {
-        return extractExpiration(token).before(new Date());
+    public boolean isTokenExpired(String token) {
+        Date expiration = extractExpiration(token);
+        return expiration.before(new Date());
     }
 
-    public Boolean validateToken(String token) {
+    public boolean validateToken(String token) {
         try {
+            if (token == null || token.isBlank()) return false;
+            getClaims(token);   // ensures signature validity
             return !isTokenExpired(token);
         } catch (Exception e) {
-            return false;
+            return false; // invalid token
         }
     }
 
     public String extractRole(String token) {
-        return extractAllClaims(token).get("role", String.class);
+        return getClaims(token).get("role", String.class);
     }
 }

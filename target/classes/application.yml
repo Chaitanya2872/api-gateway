@@ -4,89 +4,341 @@ server:
 spring:
   application:
     name: api-gateway
+
+  # Redis configuration for rate limiting and caching
+  redis:
+    host: ${REDIS_HOST:localhost}
+    port: ${REDIS_PORT:6379}
+    password: ${REDIS_PASSWORD:}
+    timeout: 2000ms
+    lettuce:
+      pool:
+        max-active: 8
+        max-idle: 8
+        min-idle: 0
+
   cloud:
     gateway:
-      routes:
-        - id: inventory-service
-          uri: lb://INVENTORY-SERVICE
-          predicates:
-            - Path=/api/inventory/**
-          filters:
-            - RewritePath=/api/inventory/(?<segment>.*), /${segment}
+      # Global filters applied to all routes
+      default-filters:
+        - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
+        - name: Retry
+          args:
+            retries: 3
+            statuses: BAD_GATEWAY,GATEWAY_TIMEOUT,SERVICE_UNAVAILABLE
+            methods: GET,POST,PUT,DELETE
+            backoff:
+              firstBackoff: 50ms
+              maxBackoff: 500ms
+              factor: 2
+              basedOnPreviousValue: true
 
-        - id: stock-service
-          uri: lb://STOCK-SERVICE
-          predicates:
-            - Path=/api/stock/**
-          filters:
-            - RewritePath=/api/stock/(?<segment>.*), /${segment}
-
-        - id: consumption-service
-          uri: lb://CONSUMPTION-SERVICE
-          predicates:
-            - Path=/api/consumption/**
-          filters:
-            - RewritePath=/api/consumption/(?<segment>.*), /${segment}
-
-        - id: analytics-service
-          uri: lb://ANALYTICS-SERVICE
-          predicates:
-            - Path=/api/analytics/**
-          filters:
-            - RewritePath=/api/analytics/(?<segment>.*), /${segment}
-
-        - id: auth-service
-          uri: lb://AUTH-SERVICE
-          predicates:
-            - Path=/api/auth/**
-          filters:
-            - RewritePath=/api/auth/(?<segment>.*), /${segment}
-
-        - id: user-service
-          uri: lb://USER-SERVICE
-          predicates:
-            - Path=/api/users/**
-          filters:
-            - RewritePath=/api/users/(?<segment>.*), /${segment}
-
+      # Global CORS configuration
       globalcors:
         cors-configurations:
           '[/**]':
             allowedOrigins:
               - "http://localhost:3000"
               - "http://localhost:4200"
+              - "https://*.iotiq.co.in"
             allowedMethods:
               - GET
               - POST
               - PUT
               - DELETE
+              - PATCH
               - OPTIONS
-            allowedHeaders:
-              - "*"
+            allowedHeaders: "*"
             allowCredentials: true
+            maxAge: 3600
 
+      # HTTP client configuration
+      httpclient:
+        connect-timeout: 5000
+        response-timeout: 10s
+        pool:
+          type: elastic
+          max-idle-time: 30s
+
+      routes:
+        # --------------------------
+        # USER SERVICE
+        # --------------------------
+        - id: user-service
+          uri: lb://USER-SERVICE
+          predicates:
+            - Path=/api/users/**
+          filters:
+            - RewritePath=/api/users/(?<segment>.*), /api/users/${segment}
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 20
+                redis-rate-limiter.burstCapacity: 40
+                key-resolver: "#{@tenantKeyResolver}"
+            - name: RequestSize
+              args:
+                maxSize: 5MB
+          metadata:
+            connect-timeout: 3000
+            response-timeout: 5000
+
+        # --------------------------
+        # INVENTORY SERVICE
+        # --------------------------
+        - id: inventory-service
+          uri: lb://INVENTORY-SERVICE
+          predicates:
+            - Path=/api/inventory/**
+          filters:
+            - RewritePath=/api/inventory/(?<segment>.*), /api/items/${segment}
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 50
+                redis-rate-limiter.burstCapacity: 100
+                key-resolver: "#{@tenantKeyResolver}"
+            - name: RequestSize
+              args:
+                maxSize: 10MB
+
+        # --------------------------
+        # IOT SENSORS SERVICE
+        # --------------------------
+        - id: iot-sensors-service
+          uri: lb://IOT-SENSORS-SERVICE
+          predicates:
+            - Path=/api/sensors/**
+          filters:
+            - RewritePath=/api/sensors/(?<segment>.*), /api/sensors/${segment}
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 100
+                redis-rate-limiter.burstCapacity: 200
+                key-resolver: "#{@tenantKeyResolver}"
+          metadata:
+            response-timeout: 15000  # IoT may need longer timeout
+
+        # --------------------------
+        # ASSETS MANAGEMENT SERVICE
+        # --------------------------
+        - id: assets-management-service
+          uri: lb://ASSETS-MANAGEMENT-SERVICE
+          predicates:
+            - Path=/api/assets/**
+          filters:
+            - RewritePath=/api/assets/(?<segment>.*), /api/assets/${segment}
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 30
+                redis-rate-limiter.burstCapacity: 60
+                key-resolver: "#{@tenantKeyResolver}"
+
+        # --------------------------
+        # MEAL FORECASTING SERVICE
+        # --------------------------
+        - id: meal-forecasting-service
+          uri: lb://MEAL-FORECASTING-SERVICE
+          predicates:
+            - Path=/api/meal/**
+          filters:
+            - RewritePath=/api/meal/(?<segment>.*), /api/meal/${segment}
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 10
+                redis-rate-limiter.burstCapacity: 20
+                key-resolver: "#{@tenantKeyResolver}"
+          metadata:
+            response-timeout: 30000  # AI/ML may need longer timeout
+
+        # --------------------------
+        # ENERGY MANAGEMENT SERVICE
+        # --------------------------
+        - id: energy-management-service
+          uri: lb://ENERGY-MANAGEMENT-SERVICE
+          predicates:
+            - Path=/api/energy/**
+          filters:
+            - RewritePath=/api/energy/(?<segment>.*), /api/energy/${segment}
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 40
+                redis-rate-limiter.burstCapacity: 80
+                key-resolver: "#{@tenantKeyResolver}"
+
+        # --------------------------
+        # ANALYTICS SERVICE
+        # --------------------------
+        - id: analytics-service
+          uri: lb://ANALYTICS-SERVICE
+          predicates:
+            - Path=/api/analytics/**
+          filters:
+            - RewritePath=/api/analytics/(?<segment>.*), /api/analytics/${segment}
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 15
+                redis-rate-limiter.burstCapacity: 30
+                key-resolver: "#{@tenantKeyResolver}"
+          metadata:
+            response-timeout: 60000  # Analytics may need longer timeout
+
+        # --------------------------
+        # VISITOR MANAGEMENT SYSTEM
+        # --------------------------
+        - id: visitor-management-service
+          uri: lb://VISITOR-MANAGEMENT-SERVICE
+          predicates:
+            - Path=/api/visitors/**
+          filters:
+            - RewritePath=/api/visitors/(?<segment>.*), /api/visitors/${segment}
+            - name: RequestRateLimiter
+              args:
+                redis-rate-limiter.replenishRate: 25
+                redis-rate-limiter.burstCapacity: 50
+                key-resolver: "#{@tenantKeyResolver}"
+
+# ===========================
+# EUREKA CONFIG
+# ===========================
 eureka:
   client:
-    service-url:
-      defaultZone: http://localhost:8761/eureka/
     register-with-eureka: true
     fetch-registry: true
-  instance:
-    hostname: localhost
-    prefer-ip-address: true
+    service-url:
+      defaultZone: http://${EUREKA_USERNAME:eureka}:${EUREKA_PASSWORD:password}@${EUREKA_HOST:localhost}:${EUREKA_PORT:8761}/eureka/
+    registry-fetch-interval-seconds: 10
+    healthcheck:
+      enabled: true
 
+  instance:
+    prefer-ip-address: true
+    instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}
+    lease-renewal-interval-in-seconds: 10
+    lease-expiration-duration-in-seconds: 30
+    metadata-map:
+      version: 1.0.0
+      environment: ${SPRING_PROFILES_ACTIVE:dev}
+
+# ===========================
+# RESILIENCE4J CONFIG (Circuit Breaker)
+# ===========================
+resilience4j:
+  circuitbreaker:
+    configs:
+      default:
+        registerHealthIndicator: true
+        slidingWindowSize: 10
+        minimumNumberOfCalls: 5
+        permittedNumberOfCallsInHalfOpenState: 3
+        automaticTransitionFromOpenToHalfOpenEnabled: true
+        waitDurationInOpenState: 10s
+        failureRateThreshold: 50
+        eventConsumerBufferSize: 10
+        recordExceptions:
+          - org.springframework.web.client.HttpServerErrorException
+          - java.util.concurrent.TimeoutException
+          - java.io.IOException
+    instances:
+      userServiceCircuitBreaker:
+        baseConfig: default
+      inventoryServiceCircuitBreaker:
+        baseConfig: default
+      iotSensorsServiceCircuitBreaker:
+        baseConfig: default
+        waitDurationInOpenState: 5s
+      assetsServiceCircuitBreaker:
+        baseConfig: default
+      mealForecastingServiceCircuitBreaker:
+        baseConfig: default
+        waitDurationInOpenState: 20s
+      energyServiceCircuitBreaker:
+        baseConfig: default
+
+  # Retry configuration
+  retry:
+    configs:
+      default:
+        maxAttempts: 3
+        waitDuration: 500ms
+        enableExponentialBackoff: true
+        exponentialBackoffMultiplier: 2
+        retryExceptions:
+          - org.springframework.web.client.ResourceAccessException
+          - java.net.ConnectException
+
+  # Timeout configuration
+  timelimiter:
+    configs:
+      default:
+        timeoutDuration: 10s
+
+# ===========================
+# JWT CONFIG
+# ===========================
+jwt:
+  secret: ${JWT_SECRET:0123456789abcdef0123456789abcdef}
+  expiration: ${JWT_EXPIRATION:86400000}  # 24 hours
+
+# ===========================
+# ACTUATOR CONFIG
+# ===========================
 management:
   endpoints:
     web:
       exposure:
-        include: health,info,gateway
+        include: health,info,gateway,metrics,prometheus,circuitbreakers,ratelimiters
+      base-path: /actuator
+  endpoint:
+    health:
+      show-details: when-authorized
+      probes:
+        enabled: true
+    gateway:
+      enabled: true
+  metrics:
+    export:
+      prometheus:
+        enabled: true
+    distribution:
+      percentiles-histogram:
+        http.server.requests: true
+    tags:
+      application: ${spring.application.name}
+  health:
+    circuitbreakers:
+      enabled: true
+    ratelimiters:
+      enabled: true
 
+# ===========================
+# LOGGING CONFIG
+# ===========================
 logging:
   level:
     root: INFO
-    org.springframework.cloud.gateway: DEBUG
+    com.bmsedge.gateway: DEBUG
+    org.springframework.cloud.gateway: INFO
+    com.netflix.discovery: INFO
+    org.springframework.security: INFO
+    io.github.resilience4j: DEBUG
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} - %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    name: logs/gateway.log
+    max-size: 10MB
+    max-history: 30
+    total-size-cap: 1GB
 
-# JWT Configuration - THIS IS REQUIRED!
-jwt:
-  secret: mySecretKeyForJWTShouldBeAtLeast256BitsLongForHS256Algorithm1234567890
-  expiration: 86400000
+# ===========================
+# SAAS PLATFORM CONFIG
+# ===========================
+bmsedge:
+  platform:
+    name: BMS Edge
+    version: 1.0.0
+    tenant:
+      isolation-enabled: true
+      default-limits:
+        max-requests-per-hour: 10000
+        max-concurrent-users: 100
+        storage-limit-gb: 50

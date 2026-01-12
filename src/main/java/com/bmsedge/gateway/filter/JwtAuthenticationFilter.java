@@ -15,17 +15,26 @@ import reactor.core.publisher.Mono;
 
 import java.util.List;
 
+/**
+ * Global filter for JWT authentication in API Gateway.
+ * Validates JWT tokens and adds user information to request headers.
+ */
 @Component
 public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
     @Autowired
     private JwtUtil jwtUtil;
 
+    /**
+     * List of API endpoints that don't require JWT authentication.
+     * These endpoints are accessible without a valid JWT token.
+     */
     private static final List<String> OPEN_API_ENDPOINTS = List.of(
-            "/user-service/api/auth/login",
-            "/user-service/api/auth/register",
-            "/eureka",
-            "/actuator"
+            "/api/users/auth/login",      // Login endpoint
+            "/api/users/auth/register",   // Registration endpoint
+            "/api/auth/",                 // Generic auth endpoints
+            "/eureka",                    // Eureka endpoints
+            "/actuator"                   // Actuator/health endpoints
     );
 
     @Override
@@ -42,7 +51,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         String authHeader = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            return onError(exchange, HttpStatus.UNAUTHORIZED);
+            return onError(exchange, HttpStatus.UNAUTHORIZED, "Missing or invalid Authorization header");
         }
 
         String token = authHeader.substring(7);
@@ -60,25 +69,45 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
                 return chain.filter(exchange.mutate().request(modifiedRequest).build());
             } else {
-                return onError(exchange, HttpStatus.UNAUTHORIZED);
+                return onError(exchange, HttpStatus.UNAUTHORIZED, "Invalid or expired token");
             }
         } catch (Exception e) {
-            return onError(exchange, HttpStatus.UNAUTHORIZED);
+            return onError(exchange, HttpStatus.UNAUTHORIZED, "Token validation failed: " + e.getMessage());
         }
     }
 
+    /**
+     * Checks if the request path matches any open API endpoint.
+     */
     private boolean isOpenApiEndpoint(String path) {
         return OPEN_API_ENDPOINTS.stream().anyMatch(path::startsWith);
     }
 
+    /**
+     * Returns an error response with the given status.
+     */
     private Mono<Void> onError(ServerWebExchange exchange, HttpStatus status) {
         ServerHttpResponse response = exchange.getResponse();
         response.setStatusCode(status);
         return response.setComplete();
     }
 
+    /**
+     * Returns an error response with the given status and error message.
+     */
+    private Mono<Void> onError(ServerWebExchange exchange, HttpStatus status, String message) {
+        ServerHttpResponse response = exchange.getResponse();
+        response.setStatusCode(status);
+        response.getHeaders().add("X-Error-Message", message);
+        return response.setComplete();
+    }
+
+    /**
+     * Sets the filter order to execute early in the filter chain.
+     * Lower values have higher priority.
+     */
     @Override
     public int getOrder() {
-        return -1; // High priority
+        return -1; // High priority - execute early
     }
 }
