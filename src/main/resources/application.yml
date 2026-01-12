@@ -64,13 +64,14 @@ spring:
 
         # --------------------------
         # INVENTORY SERVICE
+        # Gateway: /api/inventory/XXX -> Service: /api/items/XXX
         # --------------------------
         - id: inventory-service
           uri: lb://INVENTORY-SERVICE
           predicates:
             - Path=/api/inventory/**
           filters:
-            - StripPrefix=1
+            - RewritePath=/api/inventory/(?<segment>.*), /api/items/${segment}
 
         # --------------------------
         # IOT SENSORS SERVICE
@@ -80,7 +81,7 @@ spring:
           predicates:
             - Path=/api/sensors/**
           filters:
-            - StripPrefix=1
+            - RewritePath=/api/sensors/(?<segment>.*), /api/sensors/${segment}
 
         # --------------------------
         # ASSETS MANAGEMENT SERVICE
