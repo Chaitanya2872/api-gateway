@@ -70,7 +70,8 @@ spring:
           predicates:
             - Path=/api/inventory/**
           filters:
-            - RewritePath=/api/inventory/(?<segment>.*), /api/items/${segment}
+            - filters:
+                - StripPrefix=1
 
         # --------------------------
         # IOT SENSORS SERVICE
@@ -80,7 +81,7 @@ spring:
           predicates:
             - Path=/api/sensors/**
           filters:
-            - RewritePath=/api/sensors/(?<segment>.*), /api/sensors/${segment}
+            - StripPrefix=1
 
         # --------------------------
         # ASSETS MANAGEMENT SERVICE
