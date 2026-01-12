@@ -10,7 +10,8 @@
     {
       "name": "jwt.expiration",
       "type": "java.lang.Long",
-      "sourceType": "com.bmsedge.gateway.config.JwtConfigProperties"
+      "sourceType": "com.bmsedge.gateway.config.JwtConfigProperties",
+      "defaultValue": 86400000
     },
     {
       "name": "jwt.secret",
