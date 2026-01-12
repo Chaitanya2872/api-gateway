@@ -32,9 +32,10 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
     /**
      * List of API endpoints that don't require JWT authentication.
-     * These endpoints are accessible without a valid JWT token.
+     * Includes both original paths AND paths after StripPrefix rewriting.
      */
     private static final List<String> OPEN_API_ENDPOINTS = Arrays.asList(
+            // Original paths (before StripPrefix)
             "/api/auth/signin",
             "/api/auth/signup",
             "/api/auth/login",
@@ -43,10 +44,18 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             "/api/users/auth/signup",
             "/api/users/auth/login",
             "/api/users/auth/register",
+
+            // Paths after StripPrefix (gateway internal routing)
             "/signin",
             "/signup",
             "/login",
             "/register",
+            "/auth/signin",
+            "/auth/signup",
+            "/auth/login",
+            "/auth/register",
+
+            // Infrastructure endpoints
             "/eureka",
             "/actuator"
     );
@@ -61,7 +70,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
         // Skip authentication for open endpoints
         if (isOpenApiEndpoint(path)) {
-            log.info("JWT Filter - Path {} is OPEN endpoint, allowing access", path);
+            log.info("JWT Filter - Path '{}' is OPEN endpoint, allowing access", path);
             return chain.filter(exchange);
         }
 
@@ -95,7 +104,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
                 return onError(exchange, HttpStatus.UNAUTHORIZED, "Invalid or expired token");
             }
         } catch (Exception e) {
-            log.error("JWT Filter - Token validation failed for path: {} - Error: {}", path, e.getMessage(), e);
+            log.error("JWT Filter - Token validation failed for path: {} - Error: {}", path, e.getMessage());
             return onError(exchange, HttpStatus.UNAUTHORIZED, "Token validation failed: " + e.getMessage());
         }
     }
@@ -119,7 +128,7 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
             }
         }
 
-        log.debug("JWT Filter - No match found for path: {}", path);
+        log.debug("JWT Filter - No match found for path: {}, checking against {} patterns", path, OPEN_API_ENDPOINTS.size());
         return false;
     }
 
