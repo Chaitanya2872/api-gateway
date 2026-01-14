@@ -52,11 +52,14 @@ public class EndpointProtectionConfig {
             "/api/inventory/templates/consumption",
             "/api/inventory/templates/info",
 
+
             // ============================================
             // DOCUMENTATION - Made public
             // ============================================
             "/api/inventory/upload/consumption/instructions",
             "/api/inventory/upload/items/instructions",
+            "/api/inventory/upload/**",
+            "/api/inventory/analytics/**",
 
             // ============================================
             // ADD NEW PUBLIC ENDPOINTS HERE
