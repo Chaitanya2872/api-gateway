@@ -58,64 +58,15 @@ spring:
             - RewritePath=/api/users/(?<segment>.*), /api/users/${segment}
 
         # ========================================
-        # INVENTORY SERVICE - Direct paths (no /inventory prefix)
-        # This matches what your frontend already sends
+        # INVENTORY SERVICE - With /api/inventory prefix
+        # This is what your frontend sends
         # ========================================
-        - id: inventory-items
+        - id: inventory-service
           uri: lb://INVENTORY-SERVICE
           predicates:
-            - Path=/api/items/**
+            - Path=/api/inventory/**
           filters:
-            - RewritePath=/api/items/(?<segment>.*), /api/items/${segment}
-
-        - id: inventory-categories
-          uri: lb://INVENTORY-SERVICE
-          predicates:
-            - Path=/api/categories/**
-          filters:
-            - RewritePath=/api/categories/(?<segment>.*), /api/categories/${segment}
-
-        - id: inventory-units
-          uri: lb://INVENTORY-SERVICE
-          predicates:
-            - Path=/api/units/**
-          filters:
-            - RewritePath=/api/units/(?<segment>.*), /api/units/${segment}
-
-        - id: inventory-upload
-          uri: lb://INVENTORY-SERVICE
-          predicates:
-            - Path=/api/upload/**
-          filters:
-            - RewritePath=/api/upload/(?<segment>.*), /api/upload/${segment}
-
-        - id: inventory-templates
-          uri: lb://INVENTORY-SERVICE
-          predicates:
-            - Path=/api/templates/**
-          filters:
-            - RewritePath=/api/templates/(?<segment>.*), /api/templates/${segment}
-
-        - id: inventory-analytics
-          uri: lb://INVENTORY-SERVICE
-          predicates:
-            - Path=/api/analytics/**
-          filters:
-            - RewritePath=/api/analytics/(?<segment>.*), /api/analytics/${segment}
-
-        - id: inventory-statistics
-          uri: lb://INVENTORY-SERVICE
-          predicates:
-            - Path=/api/statistics/**
-          filters:
-            - RewritePath=/api/statistics/(?<segment>.*), /api/statistics/${segment}
-
-        - id: inventory-footfall
-          uri: lb://INVENTORY-SERVICE
-          predicates:
-            - Path=/api/footfall/**
-          filters:
-            - RewritePath=/api/footfall/(?<segment>.*), /api/footfall/${segment}
+            - RewritePath=/api/inventory/(?<segment>.*), /api/${segment}
 
         # ========================================
         # OTHER SERVICES
