@@ -7,7 +7,6 @@ spring:
 
   cloud:
     gateway:
-      # Global filters
       default-filters:
         - DedupeResponseHeader=Access-Control-Allow-Credentials Access-Control-Allow-Origin
         - name: Retry
@@ -20,7 +19,6 @@ spring:
               maxBackoff: 500ms
               factor: 2
 
-      # CORS configuration
       globalcors:
         cors-configurations:
           '[/**]':
@@ -42,9 +40,7 @@ spring:
             maxAge: 3600
 
       routes:
-        # --------------------------
-        # USER SERVICE (Authentication)
-        # --------------------------
+        # USER SERVICE
         - id: user-service-auth
           uri: lb://USER-SERVICE
           predicates:
@@ -52,9 +48,6 @@ spring:
           filters:
             - RewritePath=/api/auth/(?<segment>.*), /api/auth/${segment}
 
-        # --------------------------
-        # USER SERVICE (General)
-        # --------------------------
         - id: user-service
           uri: lb://USER-SERVICE
           predicates:
@@ -62,20 +55,15 @@ spring:
           filters:
             - RewritePath=/api/users/(?<segment>.*), /api/users/${segment}
 
-        # --------------------------
-        # INVENTORY SERVICE
-        # Gateway: /api/inventory/XXX -> Service: /api/items/XXX
-        # --------------------------
+        # INVENTORY SERVICE - /api/inventory/items -> /api/items
         - id: inventory-service
           uri: lb://INVENTORY-SERVICE
           predicates:
             - Path=/api/inventory/**
           filters:
-            - RewritePath=/api/inventory/(?<segment>.*), /api/items/${segment}
+            - RewritePath=/api/inventory/(?<segment>.*), /api/${segment}
 
-        # --------------------------
-        # IOT SENSORS SERVICE
-        # --------------------------
+        # OTHER SERVICES
         - id: iot-sensors-service
           uri: lb://IOT-SENSORS-SERVICE
           predicates:
@@ -83,9 +71,6 @@ spring:
           filters:
             - RewritePath=/api/sensors/(?<segment>.*), /api/sensors/${segment}
 
-        # --------------------------
-        # ASSETS MANAGEMENT SERVICE
-        # --------------------------
         - id: assets-management-service
           uri: lb://ASSETS-MANAGEMENT-SERVICE
           predicates:
@@ -93,9 +78,6 @@ spring:
           filters:
             - RewritePath=/api/assets/(?<segment>.*), /api/assets/${segment}
 
-        # --------------------------
-        # MEAL FORECASTING SERVICE
-        # --------------------------
         - id: meal-forecasting-service
           uri: lb://MEAL-FORECASTING-SERVICE
           predicates:
@@ -103,9 +85,6 @@ spring:
           filters:
             - RewritePath=/api/meal/(?<segment>.*), /api/meal/${segment}
 
-        # --------------------------
-        # ENERGY MANAGEMENT SERVICE
-        # --------------------------
         - id: energy-management-service
           uri: lb://ENERGY-MANAGEMENT-SERVICE
           predicates:
@@ -113,9 +92,6 @@ spring:
           filters:
             - RewritePath=/api/energy/(?<segment>.*), /api/energy/${segment}
 
-        # --------------------------
-        # ANALYTICS SERVICE
-        # --------------------------
         - id: analytics-service
           uri: lb://ANALYTICS-SERVICE
           predicates:
@@ -123,9 +99,6 @@ spring:
           filters:
             - RewritePath=/api/analytics/(?<segment>.*), /api/analytics/${segment}
 
-        # --------------------------
-        # VISITOR MANAGEMENT SERVICE
-        # --------------------------
         - id: visitor-management-service
           uri: lb://VISITOR-MANAGEMENT-SERVICE
           predicates:
@@ -133,9 +106,6 @@ spring:
           filters:
             - RewritePath=/api/visitors/(?<segment>.*), /api/visitors/${segment}
 
-# ===========================
-# EUREKA CONFIG
-# ===========================
 eureka:
   client:
     register-with-eureka: true
@@ -143,50 +113,25 @@ eureka:
     service-url:
       defaultZone: http://${EUREKA_USERNAME:eureka}:${EUREKA_PASSWORD:password}@${EUREKA_HOST:localhost}:${EUREKA_PORT:8761}/eureka/
     registry-fetch-interval-seconds: 10
-    healthcheck:
-      enabled: true
 
   instance:
     prefer-ip-address: true
-    instance-id: ${spring.application.name}:${spring.application.instance_id:${random.value}}
+    instance-id: ${spring.application.name}:${random.value}
     lease-renewal-interval-in-seconds: 10
     lease-expiration-duration-in-seconds: 30
-    metadata-map:
-      version: 1.0.0
-      environment: ${SPRING_PROFILES_ACTIVE:default}
 
-# ===========================
-# JWT CONFIG
-# ===========================
 jwt:
   secret: ${JWT_SECRET:0123456789abcdef0123456789abcdef}
   expiration: ${JWT_EXPIRATION:86400000}
 
-# ===========================
-# ACTUATOR CONFIG
-# ===========================
 management:
   endpoints:
     web:
       exposure:
         include: health,info,gateway,metrics,prometheus
-      base-path: /actuator
-  endpoint:
-    health:
-      show-details: when-authorized
-      probes:
-        enabled: true
-    gateway:
-      enabled: true
 
-# ===========================
-# LOGGING CONFIG
-# ===========================
 logging:
   level:
     root: INFO
     com.bmsedge.gateway: DEBUG
     org.springframework.cloud.gateway: DEBUG
-    com.bmsedge.gateway.filter.JwtAuthenticationFilter: DEBUG
-  pattern:
-    console: "%d{yyyy-MM-dd HH:mm:ss} - %logger{36} - %msg%n"
