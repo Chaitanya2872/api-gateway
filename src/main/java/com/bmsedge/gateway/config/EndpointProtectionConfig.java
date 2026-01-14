@@ -42,9 +42,6 @@ public class EndpointProtectionConfig {
             "/actuator/info",
             "/eureka",
 
-            "/api/inventory/items",
-            "/api/inventory/categories",
-
             // ============================================
             // TEMPLATES - Made public for easy access
             // ============================================
@@ -52,20 +49,11 @@ public class EndpointProtectionConfig {
             "/api/inventory/templates/consumption",
             "/api/inventory/templates/info",
 
-
             // ============================================
             // DOCUMENTATION - Made public
             // ============================================
             "/api/inventory/upload/consumption/instructions",
             "/api/inventory/upload/items/instructions",
-            "/api/inventory/upload/**",
-            "/api/inventory/analytics/**",
-
-            // ============================================
-            // ADD NEW PUBLIC ENDPOINTS HERE
-            // ============================================
-            // Example: "/api/inventory/public/catalog"
-            // Example: "/api/sensors/public/status"
 
             // Swagger/API Docs (if using)
             "/swagger-ui",
@@ -77,11 +65,27 @@ public class EndpointProtectionConfig {
      * Patterns for public endpoints (prefix matching)
      */
     private static final Set<String> OPEN_PATTERNS = new HashSet<>(Arrays.asList(
+            // Authentication
             "/api/auth",
             "/api/users/auth",
+
+            // Infrastructure
             "/actuator",
+            "/eureka",
+
+            // Templates
             "/api/inventory/templates",
-            "/eureka"
+
+            // ============================================
+            // TEMPORARY: Make these public for testing
+            // TODO: Remove these after testing, make protected
+            // ============================================
+            "/api/inventory/items",
+            "/api/inventory/categories",
+            "/api/inventory/analytics",
+            "/api/inventory/upload",
+            "/api/inventory/footfall",
+            "/api/inventory/statistics"
     ));
 
     /**
