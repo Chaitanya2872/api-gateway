@@ -1,5 +1,6 @@
 package com.bmsedge.gateway.filter;
 
+import com.bmsedge.gateway.config.EndpointProtectionConfig;
 import com.bmsedge.gateway.util.JwtUtil;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -15,12 +16,11 @@ import org.springframework.stereotype.Component;
 import org.springframework.web.server.ServerWebExchange;
 import reactor.core.publisher.Mono;
 
-import java.util.Arrays;
-import java.util.List;
-
 /**
- * Global filter for JWT authentication in API Gateway.
- * Validates JWT tokens and adds user information to request headers.
+ * Global JWT Authentication Filter for API Gateway
+ *
+ * Uses EndpointProtectionConfig to determine which endpoints are public.
+ * Add new public endpoints to EndpointProtectionConfig, not here.
  */
 @Component
 public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
@@ -30,36 +30,6 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
     @Autowired
     private JwtUtil jwtUtil;
 
-    /**
-     * List of API endpoints that don't require JWT authentication.
-     * Includes both original paths AND paths after StripPrefix rewriting.
-     */
-    private static final List<String> OPEN_API_ENDPOINTS = Arrays.asList(
-            // Original paths (before StripPrefix)
-            "/api/auth/signin",
-            "/api/auth/signup",
-            "/api/auth/login",
-            "/api/auth/register",
-            "/api/users/auth/signin",
-            "/api/users/auth/signup",
-            "/api/users/auth/login",
-            "/api/users/auth/register",
-
-            // Paths after StripPrefix (gateway internal routing)
-            "/signin",
-            "/signup",
-            "/login",
-            "/register",
-            "/auth/signin",
-            "/auth/signup",
-            "/auth/login",
-            "/auth/register",
-
-            // Infrastructure endpoints
-            "/eureka",
-            "/actuator"
-    );
-
     @Override
     public Mono<Void> filter(ServerWebExchange exchange, GatewayFilterChain chain) {
         ServerHttpRequest request = exchange.getRequest();
@@ -68,96 +38,72 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
 
         log.info("JWT Filter - Processing: {} {}", method, path);
 
-        // Skip authentication for open endpoints
-        if (isOpenApiEndpoint(path)) {
-            log.info("JWT Filter - Path '{}' is OPEN endpoint, allowing access", path);
+        // Check if endpoint is public
+        if (EndpointProtectionConfig.isPublicEndpoint(path)) {
+            log.info("JWT Filter - PUBLIC endpoint '{}', allowing access", path);
             return chain.filter(exchange);
         }
 
-        // Check for Authorization header
+        // Protected endpoint - requires authentication
+        log.debug("JWT Filter - PROTECTED endpoint '{}', checking authentication", path);
+
         String authHeader = request.getHeaders().getFirst(HttpHeaders.AUTHORIZATION);
 
         if (authHeader == null || !authHeader.startsWith("Bearer ")) {
-            log.warn("JWT Filter - Missing or invalid Authorization header for path: {}", path);
-            return onError(exchange, HttpStatus.UNAUTHORIZED, "Missing or invalid Authorization header");
+            log.warn("JWT Filter - UNAUTHORIZED: No token for {}", path);
+            return onError(exchange, HttpStatus.UNAUTHORIZED,
+                    "Missing or invalid Authorization header. Please login.");
         }
 
         String token = authHeader.substring(7);
-        log.debug("JWT Filter - Token found, validating...");
 
         try {
             if (jwtUtil.validateToken(token)) {
-                // Add user info to headers for downstream services
                 String username = jwtUtil.extractUsername(token);
                 String role = jwtUtil.extractRole(token);
 
-                log.info("JWT Filter - Token valid for user: {}, role: {}", username, role);
+                log.info("JWT Filter - AUTHORIZED: user='{}', role='{}', path='{}'",
+                        username, role, path);
 
+                // Add user context to headers
                 ServerHttpRequest modifiedRequest = request.mutate()
                         .header("X-User-Id", username)
                         .header("X-User-Role", role)
+                        .header("X-User-Email", username)
+                        .header("X-Authenticated", "true")
                         .build();
 
                 return chain.filter(exchange.mutate().request(modifiedRequest).build());
             } else {
-                log.warn("JWT Filter - Invalid or expired token for path: {}", path);
+                log.warn("JWT Filter - UNAUTHORIZED: Invalid token for {}", path);
                 return onError(exchange, HttpStatus.UNAUTHORIZED, "Invalid or expired token");
             }
+        } catch (io.jsonwebtoken.ExpiredJwtException e) {
+            log.error("JWT Filter - UNAUTHORIZED: Expired token for {}", path);
+            return onError(exchange, HttpStatus.UNAUTHORIZED, "Token expired. Please login again.");
+        } catch (io.jsonwebtoken.MalformedJwtException e) {
+            log.error("JWT Filter - UNAUTHORIZED: Malformed token for {}", path);
+            return onError(exchange, HttpStatus.UNAUTHORIZED, "Malformed token");
+        } catch (io.jsonwebtoken.SignatureException e) {
+            log.error("JWT Filter - UNAUTHORIZED: Invalid signature for {}", path);
+            return onError(exchange, HttpStatus.UNAUTHORIZED, "Invalid token signature");
         } catch (Exception e) {
-            log.error("JWT Filter - Token validation failed for path: {} - Error: {}", path, e.getMessage());
-            return onError(exchange, HttpStatus.UNAUTHORIZED, "Token validation failed: " + e.getMessage());
+            log.error("JWT Filter - ERROR: {} for {}", e.getMessage(), path);
+            return onError(exchange, HttpStatus.UNAUTHORIZED, "Authentication failed");
         }
     }
 
-    /**
-     * Checks if the request path matches any open API endpoint.
-     * Uses both exact match and startsWith for flexibility.
-     */
-    private boolean isOpenApiEndpoint(String path) {
-        // Check exact match first
-        if (OPEN_API_ENDPOINTS.contains(path)) {
-            log.debug("JWT Filter - Exact match found for path: {}", path);
-            return true;
-        }
-
-        // Check if path starts with any open endpoint pattern
-        for (String pattern : OPEN_API_ENDPOINTS) {
-            if (path.startsWith(pattern)) {
-                log.debug("JWT Filter - Pattern match found: {} starts with {}", path, pattern);
-                return true;
-            }
-        }
-
-        log.debug("JWT Filter - No match found for path: {}, checking against {} patterns", path, OPEN_API_ENDPOINTS.size());
-        return false;
-    }
-
-    /**
-     * Returns an error response with the given status.
-     */
-    private Mono<Void> onError(ServerWebExchange exchange, HttpStatus status) {
-        ServerHttpResponse response = exchange.getResponse();
-        response.setStatusCode(status);
-        return response.setComplete();
-    }
-
-    /**
-     * Returns an error response with the given status and error message.
-     */
     private Mono<Void> onError(ServerWebExchange exchange, HttpStatus status, String message) {
         ServerHttpResponse response = exchange.getResponse();
         response.setStatusCode(status);
         response.getHeaders().add("X-Error-Message", message);
-        log.warn("JWT Filter - Returning error: {} - {}", status, message);
+        response.getHeaders().add("Content-Type", "application/json");
+        log.warn("JWT Filter - Error response: {} - {}", status, message);
         return response.setComplete();
     }
 
-    /**
-     * Sets the filter order to execute early in the filter chain.
-     * Lower values have higher priority.
-     */
     @Override
     public int getOrder() {
-        return -1; // High priority - execute early
+        return -1; // Execute before route transformations
     }
 }
