@@ -58,8 +58,8 @@ spring:
             - RewritePath=/api/users/(?<segment>.*), /api/users/${segment}
 
         # ========================================
-        # INVENTORY SERVICE - With /api/inventory prefix
-        # This is what your frontend sends
+        # INVENTORY SERVICE
+        # Gateway: /api/inventory/** -> Service: /api/**
         # ========================================
         - id: inventory-service
           uri: lb://INVENTORY-SERVICE
@@ -69,15 +69,49 @@ spring:
             - RewritePath=/api/inventory/(?<segment>.*), /api/${segment}
 
         # ========================================
-        # OTHER SERVICES
+        # IOT/SENSOR SERVICE
+        # Gateway: /api/iot/** -> Service: /api/**
+        # Handles: device-mappings, cafeteria, sensors, locations, dashboard
         # ========================================
-        - id: iot-sensors-service
+        - id: iot-sensor-service
           uri: lb://IOT-SENSORS-SERVICE
           predicates:
-            - Path=/api/sensors/**
+            - Path=/api/iot/**
           filters:
-            - RewritePath=/api/sensors/(?<segment>.*), /api/sensors/${segment}
+            - RewritePath=/api/iot/(?<segment>.*), /api/${segment}
 
+        # ========================================
+        # ALTERNATIVE: Direct IoT routes (if frontend calls /api/sensors directly)
+        # Use this if your frontend doesn't use /api/iot prefix
+        # ========================================
+        # - id: iot-device-mappings
+        #   uri: lb://IOT-SENSORS-SERVICE
+        #   predicates:
+        #     - Path=/api/device-mappings/**
+        #
+        # - id: iot-cafeteria
+        #   uri: lb://IOT-SENSORS-SERVICE
+        #   predicates:
+        #     - Path=/api/cafeteria/**
+        #
+        # - id: iot-sensors
+        #   uri: lb://IOT-SENSORS-SERVICE
+        #   predicates:
+        #     - Path=/api/sensors/**
+        #
+        # - id: iot-locations
+        #   uri: lb://IOT-SENSORS-SERVICE
+        #   predicates:
+        #     - Path=/api/locations/**
+        #
+        # - id: iot-dashboard
+        #   uri: lb://IOT-SENSORS-SERVICE
+        #   predicates:
+        #     - Path=/api/dashboard/**
+
+        # ========================================
+        # ASSETS MANAGEMENT SERVICE
+        # ========================================
         - id: assets-management-service
           uri: lb://ASSETS-MANAGEMENT-SERVICE
           predicates:
@@ -85,6 +119,9 @@ spring:
           filters:
             - RewritePath=/api/assets/(?<segment>.*), /api/assets/${segment}
 
+        # ========================================
+        # MEAL FORECASTING SERVICE
+        # ========================================
         - id: meal-forecasting-service
           uri: lb://MEAL-FORECASTING-SERVICE
           predicates:
@@ -92,6 +129,9 @@ spring:
           filters:
             - RewritePath=/api/meal/(?<segment>.*), /api/meal/${segment}
 
+        # ========================================
+        # ENERGY MANAGEMENT SERVICE
+        # ========================================
         - id: energy-management-service
           uri: lb://ENERGY-MANAGEMENT-SERVICE
           predicates:
@@ -99,6 +139,9 @@ spring:
           filters:
             - RewritePath=/api/energy/(?<segment>.*), /api/energy/${segment}
 
+        # ========================================
+        # ANALYTICS SERVICE (separate from inventory analytics)
+        # ========================================
         - id: analytics-service
           uri: lb://ANALYTICS-SERVICE
           predicates:
@@ -106,6 +149,9 @@ spring:
           filters:
             - RewritePath=/api/analytics-service/(?<segment>.*), /api/analytics/${segment}
 
+        # ========================================
+        # VISITOR MANAGEMENT SERVICE
+        # ========================================
         - id: visitor-management-service
           uri: lb://VISITOR-MANAGEMENT-SERVICE
           predicates:

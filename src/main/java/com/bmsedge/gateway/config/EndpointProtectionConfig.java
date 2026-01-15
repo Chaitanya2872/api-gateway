@@ -7,16 +7,13 @@ import java.util.Set;
 /**
  * Centralized configuration for API endpoint protection.
  *
- * Add new public endpoints to OPEN_ENDPOINTS.
+ * Add new public endpoints to OPEN_ENDPOINTS or OPEN_PATTERNS.
  * All other endpoints are automatically PROTECTED (require JWT).
  */
 public class EndpointProtectionConfig {
 
     /**
-     * Public endpoints that DON'T require JWT authentication.
-     *
-     * NOTE: These are the ORIGINAL paths (what clients send),
-     * not the transformed paths after RewritePath/StripPrefix filters.
+     * Public endpoints that DON'T require JWT authentication (exact match).
      */
     private static final Set<String> OPEN_ENDPOINTS = new HashSet<>(Arrays.asList(
             // ============================================
@@ -62,34 +59,54 @@ public class EndpointProtectionConfig {
     ));
 
     /**
-     * Patterns for public endpoints (prefix matching)
+     * Patterns for public endpoints (prefix matching).
      */
     private static final Set<String> OPEN_PATTERNS = new HashSet<>(Arrays.asList(
-            // Authentication
+            // ============================================
+            // AUTHENTICATION
+            // ============================================
             "/api/auth",
             "/api/users/auth",
 
-            // Infrastructure
+            // ============================================
+            // INFRASTRUCTURE
+            // ============================================
             "/actuator",
             "/eureka",
 
-            // Templates
-            "/api/inventory/templates",
-
             // ============================================
-            // TEMPORARY: Make these public for testing
-            // TODO: Remove these after testing, make protected
+            // INVENTORY SERVICE - TEMPORARY PUBLIC (for testing)
+            // TODO: Remove after frontend adds JWT, make protected
             // ============================================
             "/api/inventory/items",
             "/api/inventory/categories",
             "/api/inventory/analytics",
             "/api/inventory/upload",
             "/api/inventory/footfall",
-            "/api/inventory/statistics"
+            "/api/inventory/statistics",
+            "/api/inventory/units",
+            "/api/inventory/templates",
+
+            // ============================================
+            // IOT/SENSOR SERVICE - TEMPORARY PUBLIC (for testing)
+            // TODO: Remove after frontend adds JWT, make protected
+            // ============================================
+            "/api/iot/device-mappings",
+            "/api/iot/cafeteria",
+            "/api/iot/sensors",
+            "/api/iot/locations",
+            "/api/iot/dashboard",
+
+            // Alternative: If frontend calls directly without /iot prefix
+            "/api/device-mappings",
+            "/api/cafeteria",
+            "/api/sensors",
+            "/api/locations",
+            "/api/dashboard"
     ));
 
     /**
-     * Check if a path is a public endpoint (doesn't require authentication)
+     * Check if a path is a public endpoint (doesn't require authentication).
      */
     public static boolean isPublicEndpoint(String path) {
         if (path == null || path.isEmpty()) {
@@ -118,35 +135,35 @@ public class EndpointProtectionConfig {
     }
 
     /**
-     * Check if a path is protected (requires authentication)
+     * Check if a path is protected (requires authentication).
      */
     public static boolean isProtectedEndpoint(String path) {
         return !isPublicEndpoint(path);
     }
 
     /**
-     * Get all public endpoint patterns
+     * Get all public endpoint patterns.
      */
     public static Set<String> getPublicEndpoints() {
         return new HashSet<>(OPEN_ENDPOINTS);
     }
 
     /**
-     * Get all public endpoint patterns
+     * Get all public endpoint patterns.
      */
     public static Set<String> getPublicPatterns() {
         return new HashSet<>(OPEN_PATTERNS);
     }
 
     /**
-     * Add a public endpoint at runtime (for testing/debugging)
+     * Add a public endpoint at runtime (for testing/debugging).
      */
     public static void addPublicEndpoint(String endpoint) {
         OPEN_ENDPOINTS.add(endpoint);
     }
 
     /**
-     * Add a public pattern at runtime (for testing/debugging)
+     * Add a public pattern at runtime (for testing/debugging).
      */
     public static void addPublicPattern(String pattern) {
         OPEN_PATTERNS.add(pattern);
