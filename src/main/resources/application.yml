@@ -27,7 +27,7 @@ spring:
               - "http://localhost:4200"
               - "http://45.79.121.181:80"
               - "http://45.79.121.181:3000"
-              - "https://*.iotiq.co.in"
+              - "https://edge.iotiq.co.in"
             allowedMethods:
               - GET
               - POST

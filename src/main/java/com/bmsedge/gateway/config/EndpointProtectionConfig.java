@@ -6,7 +6,7 @@ import java.util.Set;
 
 /**
  * Centralized configuration for API endpoint protection.
- *
+ * <p>
  * Add new public endpoints to OPEN_ENDPOINTS or OPEN_PATTERNS.
  * All other endpoints are automatically PROTECTED (require JWT).
  */
