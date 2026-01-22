@@ -36,6 +36,10 @@ public class JwtAuthenticationFilter implements GlobalFilter, Ordered {
         String path = request.getPath().value();
         String method = request.getMethod().toString();
 
+        if ("OPTIONS".equalsIgnoreCase(request.getMethod().name())) {
+            return chain.filter(exchange);
+        }
+
         log.info("JWT Filter - Processing: {} {}", method, path);
 
         // Check if endpoint is public
