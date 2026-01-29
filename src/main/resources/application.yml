@@ -147,7 +147,7 @@ spring:
           predicates:
             - Path=/api/mqtt/**
           filters:
-            - RewritePath=/api/mqtt/(?<segment>.*), /${segment}
+            - RewritePath=/api/mqtt/(?<segment>.*), /api/mqtt-data/${segment}
 
 eureka:
   client:
