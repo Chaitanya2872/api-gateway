@@ -104,7 +104,9 @@ public class EndpointProtectionConfig {
             "/api/locations",
             "/api/dashboard",
 
-            "/api/mqtt"
+            "/api/mqtt",
+
+            "/api/device-management"
     ));
 
     /**
