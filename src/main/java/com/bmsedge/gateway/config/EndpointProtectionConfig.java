@@ -104,8 +104,7 @@ public class EndpointProtectionConfig {
             "/api/locations",
             "/api/dashboard",
 
-            "/api/mqtt/mqtt-data",
-            "/api/mqtt/mqtt-data/aggregate"
+            "/api/mqtt"
     ));
 
     /**
