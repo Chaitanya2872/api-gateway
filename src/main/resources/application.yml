@@ -20,7 +20,7 @@ spring:
               factor: 2
 
       globalcors:
-        cors-configurations:
+        corsConfigurations:
           '[/**]':
             allowedOrigins:
               - "http://localhost:3000"
@@ -158,6 +158,28 @@ spring:
             - Path=/api/visitors/**
           filters:
             - RewritePath=/api/visitors/(?<segment>.*), /api/visitors/${segment}
+
+            # ========================================
+            # DEVICE MANAGEMENT SERVICE  (NEW)
+            # spring.application.name = device-manager
+            # ========================================
+            - id: device-manager
+              uri: lb://DEVICE-MANAGER
+              predicates:
+                - Path=/api/device-management/**
+              filters:
+                - RewritePath=/api/device-management/(?<segment>.*), /api/${segment}
+
+            # ========================================
+            # MQTT SERVICE (NEW)
+            # spring.application.name = mqtt-service
+            # ========================================
+            - id: mqtt-service
+              uri: lb://MQTT-SERVICE
+              predicates:
+                - Path=/api/mqtt/**
+              filters:
+                - RewritePath=/api/mqtt/(?<segment>.*), /${segment}
 
 eureka:
   client:

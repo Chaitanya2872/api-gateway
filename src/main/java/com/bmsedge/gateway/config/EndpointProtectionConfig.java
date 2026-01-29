@@ -102,7 +102,10 @@ public class EndpointProtectionConfig {
             "/api/cafeteria",
             "/api/sensors",
             "/api/locations",
-            "/api/dashboard"
+            "/api/dashboard",
+
+            "/api/mqtt/mqtt-data",
+            "/api/mqtt/mqtt-data/aggregate"
     ));
 
     /**
