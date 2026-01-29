@@ -59,7 +59,6 @@ spring:
 
         # ========================================
         # INVENTORY SERVICE
-        # Gateway: /api/inventory/** -> Service: /api/**
         # ========================================
         - id: inventory-service
           uri: lb://INVENTORY-SERVICE
@@ -69,9 +68,7 @@ spring:
             - RewritePath=/api/inventory/(?<segment>.*), /api/${segment}
 
         # ========================================
-        # IOT/SENSOR SERVICE
-        # Gateway: /api/iot/** -> Service: /api/**
-        # Handles: device-mappings, cafeteria, sensors, locations, dashboard
+        # IOT / SENSOR SERVICE
         # ========================================
         - id: iot-sensor-service
           uri: lb://IOT-SENSORS-SERVICE
@@ -79,35 +76,6 @@ spring:
             - Path=/api/iot/**
           filters:
             - RewritePath=/api/iot/(?<segment>.*), /api/${segment}
-
-        # ========================================
-        # ALTERNATIVE: Direct IoT routes (if frontend calls /api/sensors directly)
-        # Use this if your frontend doesn't use /api/iot prefix
-        # ========================================
-        # - id: iot-device-mappings
-        #   uri: lb://IOT-SENSORS-SERVICE
-        #   predicates:
-        #     - Path=/api/device-mappings/**
-        #
-        # - id: iot-cafeteria
-        #   uri: lb://IOT-SENSORS-SERVICE
-        #   predicates:
-        #     - Path=/api/cafeteria/**
-        #
-        # - id: iot-sensors
-        #   uri: lb://IOT-SENSORS-SERVICE
-        #   predicates:
-        #     - Path=/api/sensors/**
-        #
-        # - id: iot-locations
-        #   uri: lb://IOT-SENSORS-SERVICE
-        #   predicates:
-        #     - Path=/api/locations/**
-        #
-        # - id: iot-dashboard
-        #   uri: lb://IOT-SENSORS-SERVICE
-        #   predicates:
-        #     - Path=/api/dashboard/**
 
         # ========================================
         # ASSETS MANAGEMENT SERVICE
@@ -140,7 +108,7 @@ spring:
             - RewritePath=/api/energy/(?<segment>.*), /api/energy/${segment}
 
         # ========================================
-        # ANALYTICS SERVICE (separate from inventory analytics)
+        # ANALYTICS SERVICE
         # ========================================
         - id: analytics-service
           uri: lb://ANALYTICS-SERVICE
@@ -159,27 +127,27 @@ spring:
           filters:
             - RewritePath=/api/visitors/(?<segment>.*), /api/visitors/${segment}
 
-            # ========================================
-            # DEVICE MANAGEMENT SERVICE  (NEW)
-            # spring.application.name = device-manager
-            # ========================================
-            - id: device-manager
-              uri: lb://DEVICE-MANAGER
-              predicates:
-                - Path=/api/device-management/**
-              filters:
-                - RewritePath=/api/device-management/(?<segment>.*), /api/${segment}
+        # ========================================
+        # DEVICE MANAGEMENT SERVICE
+        # spring.application.name = DEVICE-MANAGER
+        # ========================================
+        - id: device-manager
+          uri: lb://DEVICE-MANAGER
+          predicates:
+            - Path=/api/device-management/**
+          filters:
+            - RewritePath=/api/device-management/(?<segment>.*), /api/${segment}
 
-            # ========================================
-            # MQTT SERVICE (NEW)
-            # spring.application.name = mqtt-service
-            # ========================================
-            - id: mqtt-service
-              uri: lb://MQTT-SERVICE
-              predicates:
-                - Path=/api/mqtt/**
-              filters:
-                - RewritePath=/api/mqtt/(?<segment>.*), /${segment}
+        # ========================================
+        # MQTT SERVICE
+        # spring.application.name = MQTT-SERVICE
+        # ========================================
+        - id: mqtt-service
+          uri: lb://MQTT-SERVICE
+          predicates:
+            - Path=/api/mqtt/**
+          filters:
+            - RewritePath=/api/mqtt/(?<segment>.*), /${segment}
 
 eureka:
   client:
